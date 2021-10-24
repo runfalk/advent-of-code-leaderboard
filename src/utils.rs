@@ -1,0 +1,21 @@
+use anyhow::{anyhow, Result};
+use chrono::{DateTime, Duration, TimeZone, Utc};
+use chrono_tz::EST;
+
+/// Return the release time of the puzzle for the given year and day
+pub fn release_time(year: i32, day: u32) -> Result<DateTime<Utc>> {
+    if day == 0 || day > 25 {
+        return Err(anyhow!("Day must be between 1 and 25"));
+    }
+    Ok(EST.ymd(year, 12, day).and_hms(0, 0, 0).with_timezone(&Utc))
+}
+
+/// Calculate the score for a puzzle based on the duration from release
+pub fn score_puzzle(completion_time: Duration) -> usize {
+    let num_days = completion_time.num_days() as usize;
+    if num_days > 8 {
+        10
+    } else {
+        50 - 5 * num_days
+    }
+}
