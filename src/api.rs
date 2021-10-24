@@ -1,80 +1,34 @@
-use anyhow::{anyhow, Result};
-use chrono::{DateTime, TimeZone, Utc};
-use serde::{de::Error as SerdeError, Deserialize};
-use serde_json::Value;
-use std::collections::HashMap;
+use anyhow::Result;
 use std::fs::File;
 use std::io::Write;
 use std::time::{Duration, SystemTime};
+use std::path::PathBuf;
 
-#[derive(Debug, Deserialize)]
-struct Config {
+use crate::parser::Leaderboard;
+
+pub struct Client {
     session: String,
-    leaderboards: Vec<usize>,
+    cache_dir: PathBuf,
 }
 
-#[derive(Debug, Deserialize)]
-pub struct Day {
-    #[serde(rename = "1", deserialize_with = "parse_day_progress")]
-    pub part1: DateTime<Utc>,
-    #[serde(rename = "2", deserialize_with = "parse_day_progress_opt", default)]
-    pub part2: Option<DateTime<Utc>>,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct Member {
-    pub id: String,
-    pub name: Option<String>,
-    pub completion_day_level: HashMap<String, Day>,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct Leaderboard {
-    pub event: String,
-    pub members: HashMap<String, Member>,
-}
-
-fn parse_json_value_ts<E: serde::de::Error>(value: &Value) -> Result<DateTime<Utc>, E> {
-    match value {
-        Value::Number(n) => Ok(Utc.timestamp(n.as_i64().ok_or_else(|| E::custom("overflow"))?, 0)),
-        Value::String(n) => Ok(Utc.timestamp(n.parse().map_err(E::custom)?, 0)),
-        _ => Err(E::custom("invalid timstamp")),
+impl Client {
+    pub fn new<S: Into<String>, P: Into<PathBuf>>(session: S, cache_dir: P) -> Self {
+        Self {
+            session: session.into(),
+            cache_dir: cache_dir.into(),
+        }
     }
-}
 
-fn parse_day_progress<'de, D>(deserializer: D) -> Result<DateTime<Utc>, D::Error>
-where
-    D: serde::Deserializer<'de>,
-    D::Error: serde::de::Error,
-{
-    if let Value::Object(m) = Value::deserialize(deserializer)? {
-        let ts_value = m
-            .get("get_star_ts")
-            .ok_or_else(|| D::Error::custom("invalid day progress"))?;
-        parse_json_value_ts(&ts_value)
-    } else {
-        Err(D::Error::custom("invalid day progress"))
-    }
-}
+    pub fn fetch(&self, year: i32, id: usize) -> Result<Leaderboard> {
+        let cache_path = self.cache_dir.join(&format!("aoc-leaderboard-{}-{}.json", year, id));
 
-fn parse_day_progress_opt<'de, D>(deserializer: D) -> Result<Option<DateTime<Utc>>, D::Error>
-where
-    D: serde::Deserializer<'de>,
-    D::Error: serde::de::Error,
-{
-    Some(parse_day_progress(deserializer)).transpose()
-}
-
-impl Leaderboard {
-    pub fn fetch(session: &str, year: i32, id: usize) -> Result<Self> {
-        let mut cache_path = dirs::cache_dir().ok_or(anyhow!("Unable to find cache directory"))?;
-        cache_path.push(&format!("aoc-leaderboard-{}-{}.json", year, id));
-
+        // We're only allowed to fetch the JSON once every 15 min. Check if we have a cached
+        // version before trying
         let use_cached_json = if let Ok(m) = cache_path.as_path().metadata() {
-            SystemTime::now()
+            let last_modified = SystemTime::now()
                 .duration_since(m.modified()?)
-                .unwrap_or(Duration::from_secs(0))
-                < Duration::from_secs(15 * 60)
+                .unwrap_or(Duration::ZERO);
+            last_modified < Duration::from_secs(15 * 60)
         } else {
             false
         };
@@ -89,12 +43,14 @@ impl Leaderboard {
                     "https://adventofcode.com/{}/leaderboard/private/view/{}.json",
                     year, id
                 ))
-                .header("Cookie", &format!("session={}", session))
+                .header("Cookie", &format!("session={}", &self.session))
                 .send()?
                 .text()?;
 
+            // Save updated content in the cache
             let mut f = File::create(cache_path)?;
             f.write_all(rsp.as_ref())?;
+
             rsp
         };
 
