@@ -30,7 +30,8 @@ impl Client {
             let last_modified = SystemTime::now()
                 .duration_since(m.modified()?)
                 .unwrap_or(Duration::ZERO);
-            last_modified < Duration::from_secs(15 * 60)
+            // last_modified < Duration::from_secs(15 * 60)
+            true
         } else {
             false
         };
