@@ -32,7 +32,7 @@ pub fn render_template(leaderboard_cfg: &LeaderboardConfig, scoreboard: &Scorebo
                 leaderboard_cfg.year, day, day_html
             ));
         } else {
-            html.push_str(&format!("        {}\n", day_html));
+            html.push_str(&format!("        <span>{}</span>\n", day_html));
         }
     }
     html.push_str(r#"    </span>"#);
