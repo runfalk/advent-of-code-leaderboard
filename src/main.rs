@@ -39,7 +39,13 @@ enum Opt {
 #[derive(Debug)]
 enum WebError {
     NotFound,
-    InternalError,
+    InternalError(anyhow::Error),
+}
+
+impl<T> From<T> for WebError where T: Into<anyhow::Error> {
+    fn from(error: T) -> Self {
+        Self::InternalError(error.into())
+    }
 }
 
 // API client that is shared across all requests (makes sure that we don't refresh simultaneously)
@@ -60,8 +66,7 @@ async fn get_leaderboard(
         client
             .lock()
             .unwrap()
-            .fetch(leaderboard_cfg.year, leaderboard_cfg.id)
-            .unwrap()
+            .fetch(leaderboard_cfg.year, leaderboard_cfg.id)?
     };
     let scoreboard = model::Scoreboard::from_leaderboard(&leaderboard);
 
@@ -78,10 +83,10 @@ impl IntoResponse for WebError {
     fn into_response(self) -> http::Response<Self::Body> {
         let (status, error_message) = match self {
             Self::NotFound => (http::StatusCode::NOT_FOUND, "404 Not Found"),
-            Self::InternalError => (
-                http::StatusCode::INTERNAL_SERVER_ERROR,
-                "500 Internal Server Error",
-            ),
+            Self::InternalError(e) => {
+                println!("{}", e);
+                (http::StatusCode::INTERNAL_SERVER_ERROR, "500 Internal Server Error")
+            },
         };
         (status, error_message).into_response()
     }
