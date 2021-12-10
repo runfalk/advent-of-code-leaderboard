@@ -72,24 +72,25 @@ pub fn render_template(leaderboard_cfg: &LeaderboardConfig, scoreboard: &Scorebo
         leaderboard_cfg.year,
         leaderboard_cfg.id,
     ));
-    html.push_str("\n\n");
+    html.push_str("\n\n\n");
 
     html.push_str(HOW_DOES_IT_WORK);
-    html.push_str("\n\n");
+    html.push_str("\n\n\n");
 
     html.push_str("<h2>How to join</h2>");
     html.push_str(r#"Go to <a href="https://adventofcode.com/leaderboard">Advent of Code</a>, sign up and join this private leaderboard using the code"#);
     html.push_str("\n");
     html.push_str(&format!("<code>{}</code>.", leaderboard_cfg.code));
-    html.push_str("\n\n");
+    html.push_str("\n\n\n");
 
     html.push_str(IM_STUCK);
-    html.push_str("\n\n");
+    html.push_str("\n\n\n");
 
     html.push_str(SCORING);
-    html.push_str("\n\n");
+    html.push_str("\n\n\n");
 
     html.push_str(WHY_NOT_OFFICIAL_LEADERBOARD);
+    html.push_str("\n\n\n");
 
     html.push_str(FOOTER);
     html
@@ -103,6 +104,7 @@ const HEADER: &'static str = r#"<!doctype html>
 
     <style type="text/css">
         body {
+            margin: 0 2em;
             padding: 0;
             background: #0f0f23;
             color: #cccccc;
