@@ -11,6 +11,8 @@ in and rush the solution.
 The scoring for this leaderboard values consistency and allows for everybody to
 win.
 
+![Alt text](/screenshot.png?raw=true "Example leaderboard")
+
 
 Usage
 -----
