@@ -1,17 +1,23 @@
-use crate::config::LeaderboardConfig;
+use std::collections::HashMap;
+
+use crate::config::{LeaderboardConfig, MemberMetadata};
 use crate::model::{Scoreboard, Stars};
 use crate::utils::release_time;
 
-pub fn render_template(leaderboard_cfg: &LeaderboardConfig, scoreboard: &Scoreboard) -> String {
+pub fn render_template(
+    cfg: &LeaderboardConfig,
+    metadata: &HashMap<usize, MemberMetadata>,
+    scoreboard: &Scoreboard,
+) -> String {
     let mut html = String::new();
     html.push_str(HEADER);
 
     // Leaderboard title and header
-    html.push_str(&leaderboard_cfg.header);
+    html.push_str(&cfg.header);
     html.push_str("\n\n");
     html.push_str(&format!(
         r#"<h1>{} <span class="star-first-only">({})</span></h1>"#,
-        leaderboard_cfg.name, leaderboard_cfg.year,
+        cfg.name, cfg.year,
     ));
     html.push_str("\n");
 
@@ -26,10 +32,10 @@ pub fn render_template(leaderboard_cfg: &LeaderboardConfig, scoreboard: &Scorebo
             format!("<br>{}", day)
         };
 
-        if release_time(leaderboard_cfg.year, day).unwrap() < now {
+        if release_time(cfg.year, day).unwrap() < now {
             html.push_str(&format!(
                 "        <a href=\"https://adventofcode.com/{}/day/{}\">{}</a>\n",
-                leaderboard_cfg.year, day, day_html
+                cfg.year, day, day_html
             ));
         } else {
             html.push_str(&format!("        <span>{}</span>\n", day_html));
@@ -60,7 +66,17 @@ pub fn render_template(leaderboard_cfg: &LeaderboardConfig, scoreboard: &Scorebo
             ));
         }
         html.push_str(&format!(" {:>4}", member.score));
-        html.push_str(&format!(" {}\n", member.member.name));
+        if let Some(MemberMetadata {
+            repository: Some(repo),
+        }) = metadata.get(&member.member.id)
+        {
+            html.push_str(&format!(
+                " <a href=\"{}\">{}</a>\n",
+                repo, member.member.name
+            ));
+        } else {
+            html.push_str(&format!(" {}\n", member.member.name));
+        }
     }
     html.push_str("\n");
 
@@ -69,8 +85,8 @@ pub fn render_template(leaderboard_cfg: &LeaderboardConfig, scoreboard: &Scorebo
 
     html.push_str(&format!(
         r#"For those that are interested you can also check the <a href="https://adventofcode.com/{}/leaderboard/private/view/{}">official leaderboard</a>."#,
-        leaderboard_cfg.year,
-        leaderboard_cfg.id,
+        cfg.year,
+        cfg.id,
     ));
     html.push_str("\n\n\n");
 
@@ -80,7 +96,7 @@ pub fn render_template(leaderboard_cfg: &LeaderboardConfig, scoreboard: &Scorebo
     html.push_str("<h2>How to join</h2>");
     html.push_str(r#"Go to <a href="https://adventofcode.com/leaderboard">Advent of Code</a>, sign up and join this private leaderboard using the code"#);
     html.push_str("\n");
-    html.push_str(&format!("<code>{}</code>.", leaderboard_cfg.code));
+    html.push_str(&format!("<code>{}</code>.", cfg.code));
     html.push_str("\n\n\n");
 
     html.push_str(IM_STUCK);

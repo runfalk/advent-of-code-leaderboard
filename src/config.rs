@@ -1,4 +1,5 @@
 use anyhow::Result;
+use serde::de::Error;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::env;
@@ -11,6 +12,10 @@ pub struct Config {
     #[serde(default = "default_cache_dir")]
     pub cache_dir: PathBuf,
     pub leaderboard: Vec<LeaderboardConfig>,
+
+    // pub metadata: Option<Vec<Metadata>>,
+    #[serde(deserialize_with = "parse_metadata")]
+    pub metadata: HashMap<i32, HashMap<usize, MemberMetadata>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -26,6 +31,56 @@ pub struct LeaderboardConfig {
 
     #[serde(default)]
     pub header: String,
+}
+
+#[derive(Debug)]
+pub struct Metadata {
+    pub year: i32,
+    pub members: HashMap<usize, MemberMetadata>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct MemberMetadata {
+    pub repository: Option<String>,
+}
+
+fn parse_metadata<'de, D>(de: D) -> Result<HashMap<i32, HashMap<usize, MemberMetadata>>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let mut metadata = HashMap::new();
+
+    let metadata_tables: Vec<toml::value::Table> = Deserialize::deserialize(de)?;
+    for mut raw_metadata in metadata_tables {
+        let year: i32 = match raw_metadata
+            .remove("year")
+            .ok_or_else(|| D::Error::custom("Missing year field in metadata"))?
+        {
+            toml::Value::Integer(i) => {
+                i.try_into().map_err(|_| D::Error::custom("Invalid year"))?
+            }
+            _ => return Err(D::Error::custom("asdf")),
+        };
+
+        let mut members: HashMap<usize, MemberMetadata> = HashMap::new();
+        for (member_id_str, m) in raw_metadata {
+            // We can't detect duplicate keys because toml overrides duplicates before we get here
+            members.insert(
+                member_id_str
+                    .parse()
+                    .map_err(|_| D::Error::custom("Member must be an integer"))?,
+                Deserialize::deserialize(m).map_err(|e| D::Error::custom(e.to_string()))?,
+            );
+        }
+
+        if metadata.insert(year, members).is_some() {
+            return Err(D::Error::custom(format!(
+                "Year must be unique for all metadata tables (got {} twice)",
+                year
+            )));
+        }
+    }
+    Ok(metadata)
 }
 
 /// Return a default cache directory, and if unable to determine one, try the

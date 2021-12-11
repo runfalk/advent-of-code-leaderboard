@@ -1,7 +1,13 @@
-use crate::config::LeaderboardConfig;
+use std::collections::HashMap;
+
+use crate::config::{LeaderboardConfig, MemberMetadata};
 use crate::model::{Scoreboard, Stars};
 
-pub fn render_template(cfg: &LeaderboardConfig, scoreboard: &Scoreboard) {
+pub fn render_template(
+    cfg: &LeaderboardConfig,
+    metadata: &HashMap<usize, MemberMetadata>,
+    scoreboard: &Scoreboard,
+) {
     println!("{} ({})", cfg.name, cfg.year);
     println!();
 
@@ -48,6 +54,14 @@ pub fn render_template(cfg: &LeaderboardConfig, scoreboard: &Scoreboard) {
         }
         print!(" {:>4}", member.score);
         print!(" {}", member.member.name);
+
+        if let Some(MemberMetadata {
+            repository: Some(repo),
+        }) = metadata.get(&member.member.id)
+        {
+            print!(" ({})", repo);
+        }
+
         println!();
     }
 }

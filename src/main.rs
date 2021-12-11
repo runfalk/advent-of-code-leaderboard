@@ -18,6 +18,8 @@ mod utils;
 
 use config::{Config, LeaderboardConfig};
 
+use self::config::MemberMetadata;
+
 #[derive(Debug, StructOpt)]
 enum Opt {
     /// Start a webserver that serves the leaderboard
@@ -42,7 +44,10 @@ enum WebError {
     InternalError(anyhow::Error),
 }
 
-impl<T> From<T> for WebError where T: Into<anyhow::Error> {
+impl<T> From<T> for WebError
+where
+    T: Into<anyhow::Error>,
+{
     fn from(error: T) -> Self {
         Self::InternalError(error.into())
     }
@@ -54,6 +59,9 @@ type OurClient = Arc<Mutex<api::Client>>;
 async fn get_leaderboard(
     extract::Path(slug): extract::Path<String>,
     extract::Extension(cfg): extract::Extension<Arc<HashMap<String, LeaderboardConfig>>>,
+    extract::Extension(metadata): extract::Extension<
+        Arc<HashMap<i32, HashMap<usize, MemberMetadata>>>,
+    >,
     extract::Extension(client): extract::Extension<OurClient>,
 ) -> Result<response::Html<String>, WebError> {
     let leaderboard_cfg = if let Some(cfg) = cfg.get(&slug) {
@@ -70,8 +78,14 @@ async fn get_leaderboard(
     };
     let scoreboard = model::Scoreboard::from_leaderboard(&leaderboard);
 
+    let empty_metadata = HashMap::new();
+    let metadata = metadata
+        .get(&leaderboard_cfg.year)
+        .unwrap_or(&empty_metadata);
+
     Ok(response::Html(html::render_template(
         leaderboard_cfg,
+        metadata,
         &scoreboard,
     )))
 }
@@ -85,8 +99,11 @@ impl IntoResponse for WebError {
             Self::NotFound => (http::StatusCode::NOT_FOUND, "404 Not Found"),
             Self::InternalError(e) => {
                 println!("{}", e);
-                (http::StatusCode::INTERNAL_SERVER_ERROR, "500 Internal Server Error")
-            },
+                (
+                    http::StatusCode::INTERNAL_SERVER_ERROR,
+                    "500 Internal Server Error",
+                )
+            }
         };
         (status, error_message).into_response()
     }
@@ -103,6 +120,7 @@ async fn main() -> Result<()> {
     match opts {
         Opt::Server { host, .. } => {
             let client = api::Client::new(config.session, config.cache_dir);
+            let metadata = config.metadata;
             let config = config
                 .leaderboard
                 .into_iter()
@@ -113,6 +131,7 @@ async fn main() -> Result<()> {
             let app = Router::new()
                 .route("/:slug", routing::get(get_leaderboard))
                 .layer(AddExtensionLayer::new(Arc::new(config)))
+                .layer(AddExtensionLayer::new(Arc::new(metadata)))
                 .layer(AddExtensionLayer::new(Arc::new(Mutex::new(client))));
 
             // run it with hyper on localhost:3000
@@ -123,10 +142,15 @@ async fn main() -> Result<()> {
         }
         Opt::Console { .. } => {
             let client = api::Client::new(config.session, config.cache_dir);
+            let empty_metadata = HashMap::new();
             for leaderboard_cfg in config.leaderboard.into_iter() {
                 let leaderboard = client.fetch(leaderboard_cfg.year, leaderboard_cfg.id)?;
                 let scoreboard = model::Scoreboard::from_leaderboard(&leaderboard);
-                console::render_template(&leaderboard_cfg, &scoreboard);
+                let metadata = config
+                    .metadata
+                    .get(&leaderboard_cfg.year)
+                    .unwrap_or(&empty_metadata);
+                console::render_template(&leaderboard_cfg, &metadata, &scoreboard);
             }
         }
     };
