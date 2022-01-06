@@ -1,0 +1,164 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>{{ name }} - Advent of Code</title>
+
+    <style type="text/css">
+        body {
+            margin: 0 2em;
+            padding: 0;
+            background: #0f0f23;
+            color: #cccccc;
+            font-family: monospace;
+            font-size: 1.5em;
+            text-align: center;
+        }
+
+        .content {
+            margin-top: 2em;
+            display: inline-block;
+            text-align: left;
+            white-space: pre;
+        }
+
+        a {
+            color: #009900;
+            text-decoration: none;
+        }
+
+        a:hover, a:focus {
+            color: #99ff99;
+        }
+
+        em {
+            color: #ffffff;
+            font-style: normal;
+            text-shadow: 0 0 5px #ffffff;
+        }
+
+        h1, h2 {
+            margin: 0;
+            font-size: inherit;
+            color: #ffffff;
+            font-weight: normal;
+        }
+
+        h1::before, h2::before {
+            content: "--- ";
+        }
+
+        h1::after, h2::after {
+            content: " ---";
+        }
+
+        code {
+            margin: 0;
+            padding: 0;
+            position: relative;
+            display: inline-block;
+        }
+
+        code::before {
+            z-index: -1;
+            content: "";
+            position: absolute;
+            display: block;
+            left: -2px;
+            right: -2px;
+            top: 3px;
+            bottom: 0px;
+            border: 1px solid #333340;
+            background: #10101a;
+        }
+
+        .days {
+            display: inline-flex;
+            white-space: nowrap;
+        }
+
+        .days > * {
+            display: inline-block;
+        }
+
+        .star-none {
+            color: #555555;
+        }
+
+        .star-first-only {
+            color: #9999cc;
+        }
+
+        .star-both {
+            color: #ffff66;
+        }
+    </style>
+</head>
+<body>
+<div class="content">
+{{- header }}
+
+<h1>{{ name }} <span class="star-first-only">({{ year }})</span></h1>
+    <span class="days">
+        {% for day in range(1, 26) %}
+            {%- with is_unlocked = is_unlocked(year, day) -%}
+            {%- if is_unlocked %}<a href="https://adventofcode.com/2021/day/{{ day }}">{% else %}<span>{% endif -%}
+                {%- if day < 10 -%}
+                    <br>{{ day }}
+                {%- else -%}
+                    {{ day / 10 }}<br>{{ day % 10 }}
+                {%- endif -%}
+            {% if not is_unlocked %}</span>{% else %}</a>{% endif %}
+            {% endwith %}
+        {% endfor %}
+    </span>
+{%- for l in leaderboard -%}
+{{ l.place|left_pad(2) }}) {% for cls in l.star_classes %}<span class="{{ cls }}">*</span>{% endfor %} {{ l.score|left_pad(4) }} {% if l.repository == "" %}<span>{{ l.name }}</span>{% else %}<a href="{{ l.repository }}">{{ l.name }}</a>{% endif %}
+{%- endfor %}
+
+<span class="star-both">Gold</span> indicates the user got both stars for that day, <span class="star-first-only">silver</span> means just the first
+star, and <span class="star-none">gray</span> means none.
+
+For those that are interested you can also check the <a href="https://adventofcode.com/2021/leaderboard/private/view/968242">official leaderboard</a>.
+
+
+
+<h2>How does it work?</h2>
+Each day at <em>00:00 a.m. EST (UTC -5)</em> two puzzles are released. Each player gets
+the same problem (but different input values). The answer is usually a number or
+a short string that you can paste into the submission field. This means you can
+use <em>any language</em> (or pen and paper if you're a lunatic). When you have solved
+the first puzzle for a day you unlock the second one. It's possible to skip
+puzzles so <a href="https://www.youtube.com/watch?v=tYzMYcUty6s">don't give up</a> if a particular one is giving you trouble.
+
+Remember that the most important thing is to <em>have fun</em>!
+
+
+<h2>How to join</h2>Go to <a href="https://adventofcode.com/leaderboard">Advent of Code</a>, sign up and join this private leaderboard using the code
+<code>{{ code }}</code>.
+
+
+<h2>I'm stuck on a puzzle</h2>
+There is an <a href="https://www.reddit.com/r/adventofcode/">excellent subreddit</a> where you can get hints.
+
+
+<h2>How does the scoring work?</h2>
+If you solve the puzzle within <em>24 hours</em> from when it's released you get full
+points (<em>50</em>). For each day you lag behind the score decreases by <em>5</em>, but you can
+never get less than <em>10 points</em> for solving a puzzle. Therefore the maximum score
+is <em>2500</em> and the minimum (assuming you solve all puzzles) is <em>500</em>.
+
+
+<h2>Why not use the official leaderboard?</h2>
+By default Advent of Code scores participants by how quickly they solve the
+problem compared to everybody else on the same leaderboard. I dislike this since
+it encourages participants to use whatever language they are most comfortable
+in and rush the solution.
+
+The scoring for this leaderboard values consistency and <em>allows for everybody to
+win</em>.
+
+</div>
+</body>
+</html>
+

@@ -3,6 +3,26 @@
 version = 3
 
 [[package]]
+name = "advent-of-code-leaderboard"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "chrono",
+ "chrono-tz",
+ "dirs",
+ "hyper 0.14.14",
+ "minijinja",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "structopt",
+ "tokio 1.13.0",
+ "toml",
+ "tower",
+]
+
+[[package]]
 name = "ansi_term"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -16,25 +36,6 @@ name = "anyhow"
 version = "1.0.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bf8dcb5b4bbaa28653b647d8c77bd4ed40183b48882e130c1f1ffb73de069fd7"
-
-[[package]]
-name = "aoc-board"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "axum",
- "chrono",
- "chrono-tz",
- "dirs",
- "hyper 0.14.14",
- "reqwest",
- "serde",
- "serde_json",
- "structopt",
- "tokio 1.13.0",
- "toml",
- "tower",
-]
 
 [[package]]
 name = "arrayref"
@@ -173,6 +174,7 @@ dependencies = [
  "libc",
  "num-integer",
  "num-traits",
+ "serde",
  "time",
  "winapi 0.3.9",
 ]
@@ -692,6 +694,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "minijinja"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f26f1dbd15ffd709a508dc5ad4ccf6e559e30e083127e0033c12c2f7b6b9aa20"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "mio"
 version = "0.6.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1195,18 +1206,18 @@ dependencies = [
 
 [[package]]
 name = "serde"
-version = "1.0.117"
+version = "1.0.133"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b88fa983de7720629c9387e9f517353ed404164b1e482c970a90c1a4aaf7dc1a"
+checksum = "97565067517b60e2d1ea8b268e59ce036de907ac523ad83a0475da04e818989a"
 dependencies = [
  "serde_derive",
 ]
 
 [[package]]
 name = "serde_derive"
-version = "1.0.117"
+version = "1.0.133"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cbd1ae72adb44aab48f325a02444a5fc079349a8d804c1fc922aed3f7454c74e"
+checksum = "ed201699328568d8d08208fdd080e3ff594e6c422e438b6705905da01005d537"
 dependencies = [
  "proc-macro2",
  "quote",
