@@ -1,12 +1,12 @@
 use anyhow::Result;
+use axum::response::Response;
+use tokio::sync::Mutex;
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use structopt::StructOpt;
 
-use axum::{
-    body, extract, http, response, response::IntoResponse, routing, AddExtensionLayer, Router,
-};
+use axum::{extract, http, response, response::IntoResponse, routing, Extension, Router};
 
 mod api;
 mod config;
@@ -73,8 +73,9 @@ async fn get_leaderboard(
     let leaderboard = {
         client
             .lock()
-            .unwrap()
-            .fetch(leaderboard_cfg.year, leaderboard_cfg.id)?
+            .await
+            .fetch(leaderboard_cfg.year, leaderboard_cfg.id).
+            await?
     };
     let scoreboard = model::Scoreboard::from_leaderboard(&leaderboard);
 
@@ -91,10 +92,7 @@ async fn get_leaderboard(
 }
 
 impl IntoResponse for WebError {
-    type Body = body::Full<body::Bytes>;
-    type BodyError = std::convert::Infallible;
-
-    fn into_response(self) -> http::Response<Self::Body> {
+    fn into_response(self) -> Response {
         let (status, error_message) = match self {
             Self::NotFound => (http::StatusCode::NOT_FOUND, "404 Not Found"),
             Self::InternalError(e) => {
@@ -130,9 +128,9 @@ async fn main() -> Result<()> {
             // build our application with a single route
             let app = Router::new()
                 .route("/:slug", routing::get(get_leaderboard))
-                .layer(AddExtensionLayer::new(Arc::new(config)))
-                .layer(AddExtensionLayer::new(Arc::new(metadata)))
-                .layer(AddExtensionLayer::new(Arc::new(Mutex::new(client))));
+                .layer(Extension(Arc::new(config)))
+                .layer(Extension(Arc::new(metadata)))
+                .layer(Extension(Arc::new(Mutex::new(client))));
 
             // run it with hyper on localhost:3000
             axum::Server::bind(&host.parse()?)
@@ -144,13 +142,13 @@ async fn main() -> Result<()> {
             let client = api::Client::new(config.session, config.cache_dir);
             let empty_metadata = HashMap::new();
             for leaderboard_cfg in config.leaderboard.into_iter() {
-                let leaderboard = client.fetch(leaderboard_cfg.year, leaderboard_cfg.id)?;
+                let leaderboard = client.fetch(leaderboard_cfg.year, leaderboard_cfg.id).await?;
                 let scoreboard = model::Scoreboard::from_leaderboard(&leaderboard);
                 let metadata = config
                     .metadata
                     .get(&leaderboard_cfg.year)
                     .unwrap_or(&empty_metadata);
-                console::render_template(&leaderboard_cfg, &metadata, &scoreboard);
+                console::render_template(&leaderboard_cfg, metadata, &scoreboard);
             }
         }
     };

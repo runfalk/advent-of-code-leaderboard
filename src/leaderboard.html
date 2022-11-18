@@ -106,15 +106,15 @@
                 {%- if day < 10 -%}
                     <br>{{ day }}
                 {%- else -%}
-                    {{ day / 10 }}<br>{{ day % 10 }}
+                    {{ day // 10 }}<br>{{ day % 10 }}
                 {%- endif -%}
             {% if not is_unlocked %}</span>{% else %}</a>{% endif %}
             {% endwith %}
         {% endfor %}
     </span>
-{%- for l in leaderboard -%}
+{% for l in leaderboard -%}
 {{ l.place|left_pad(2) }}) {% for cls in l.star_classes %}<span class="{{ cls }}">*</span>{% endfor %} {{ l.score|left_pad(4) }} {% if l.repository == "" %}<span>{{ l.name }}</span>{% else %}<a href="{{ l.repository }}">{{ l.name }}</a>{% endif %}
-{%- endfor %}
+{% endfor %}
 
 <span class="star-both">Gold</span> indicates the user got both stars for that day, <span class="star-first-only">silver</span> means just the first
 star, and <span class="star-none">gray</span> means none.

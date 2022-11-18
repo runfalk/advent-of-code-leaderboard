@@ -19,7 +19,7 @@ impl Client {
         }
     }
 
-    pub fn fetch(&self, year: i32, id: usize) -> Result<Leaderboard> {
+    pub async fn fetch(&self, year: i32, id: usize) -> Result<Leaderboard> {
         let cache_path = self
             .cache_dir
             .join(&format!("aoc-leaderboard-{}-{}.json", year, id));
@@ -39,15 +39,17 @@ impl Client {
             std::fs::read_to_string(cache_path)?
         } else {
             // TODO: Detect if session is wrong since it redirects
-            let client = reqwest::blocking::Client::new();
+            let client = reqwest::Client::new();
             let rsp = client
                 .get(&format!(
                     "https://adventofcode.com/{}/leaderboard/private/view/{}.json",
                     year, id
                 ))
                 .header("Cookie", &format!("session={}", &self.session))
-                .send()?
-                .text()?;
+                .send()
+                .await?
+                .text()
+                .await?;
 
             // Save updated content in the cache
             let mut f = File::create(cache_path)?;

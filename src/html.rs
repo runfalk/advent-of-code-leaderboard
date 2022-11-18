@@ -22,9 +22,8 @@ fn chars(_state: &State, value: String) -> Result<Vec<char>, minijinja::Error> {
 }
 
 fn is_unlocked(_state: &State, year: i32, day: u32) -> Result<bool, minijinja::Error> {
-    let rt = release_time(year, day).map_err(|_| {
-        minijinja::Error::new(minijinja::ErrorKind::InvalidArguments, "Invalid date")
-    })?;
+    let rt = release_time(year, day)
+        .map_err(|_| minijinja::Error::new(minijinja::ErrorKind::CannotUnpack, "Invalid date"))?;
     Ok(rt < chrono::Utc::now())
 }
 

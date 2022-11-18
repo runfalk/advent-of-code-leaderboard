@@ -77,8 +77,14 @@ where
 
 fn parse_json_value_ts<E: serde::de::Error>(value: &Value) -> Result<DateTime<Utc>, E> {
     match value {
-        Value::Number(n) => Ok(Utc.timestamp(n.as_i64().ok_or_else(|| E::custom("overflow"))?, 0)),
-        Value::String(n) => Ok(Utc.timestamp(n.parse().map_err(E::custom)?, 0)),
+        Value::Number(n) => Ok(Utc
+            .timestamp_opt(n.as_i64().ok_or_else(|| E::custom("overflow"))?, 0)
+            .single()
+            .ok_or_else(|| E::custom("invalid timestamp"))?),
+        Value::String(n) => Ok(Utc
+            .timestamp_opt(n.parse().map_err(E::custom)?, 0)
+            .single()
+            .ok_or_else(|| E::custom("invalid timestamp"))?),
         _ => Err(E::custom("invalid timstamp")),
     }
 }
@@ -92,7 +98,7 @@ where
         let ts_value = m
             .get("get_star_ts")
             .ok_or_else(|| D::Error::custom("invalid day progress"))?;
-        parse_json_value_ts(&ts_value)
+        parse_json_value_ts(ts_value)
     } else {
         Err(D::Error::custom("invalid day progress"))
     }

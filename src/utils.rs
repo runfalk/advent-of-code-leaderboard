@@ -7,7 +7,12 @@ pub fn release_time(year: i32, day: u32) -> Result<DateTime<Utc>> {
     if day == 0 || day > 25 {
         return Err(anyhow!("Day must be between 1 and 25"));
     }
-    Ok(EST.ymd(year, 12, day).and_hms(0, 0, 0).with_timezone(&Utc))
+    // Unwrap is OK here since we know that no time change should happen in december
+    Ok(EST
+        .with_ymd_and_hms(year, 12, day, 0, 0, 0)
+        .single()
+        .unwrap()
+        .with_timezone(&Utc))
 }
 
 /// Calculate the score for a puzzle based on the duration from release
