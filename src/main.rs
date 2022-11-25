@@ -1,10 +1,10 @@
 use anyhow::Result;
 use axum::response::Response;
-use tokio::sync::Mutex;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 use structopt::StructOpt;
+use tokio::sync::Mutex;
 
 use axum::{extract, http, response, response::IntoResponse, routing, Extension, Router};
 
@@ -74,8 +74,8 @@ async fn get_leaderboard(
         client
             .lock()
             .await
-            .fetch(leaderboard_cfg.year, leaderboard_cfg.id).
-            await?
+            .fetch(leaderboard_cfg.year, leaderboard_cfg.id)
+            .await?
     };
     let scoreboard = model::Scoreboard::from_leaderboard(&leaderboard);
 
@@ -142,7 +142,9 @@ async fn main() -> Result<()> {
             let client = api::Client::new(config.session, config.cache_dir);
             let empty_metadata = HashMap::new();
             for leaderboard_cfg in config.leaderboard.into_iter() {
-                let leaderboard = client.fetch(leaderboard_cfg.year, leaderboard_cfg.id).await?;
+                let leaderboard = client
+                    .fetch(leaderboard_cfg.year, leaderboard_cfg.id)
+                    .await?;
                 let scoreboard = model::Scoreboard::from_leaderboard(&leaderboard);
                 let metadata = config
                     .metadata

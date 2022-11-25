@@ -80,6 +80,7 @@ pub fn render_template(
     }
 
     tmpl.render(context!(
+        leaderboard_id => cfg.id,
         name => cfg.name,
         year => cfg.year,
         header => cfg.header,
