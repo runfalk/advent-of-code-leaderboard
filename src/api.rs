@@ -39,6 +39,7 @@ impl Client {
             std::fs::read_to_string(cache_path)?
         } else {
             // TODO: Detect if session is wrong since it redirects
+            tracing::info!("Refreshing cached leaderboard {} ({})", id, year);
             let client = reqwest::Client::new();
             let rsp = client
                 .get(&format!(

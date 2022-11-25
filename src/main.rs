@@ -5,6 +5,8 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tokio::sync::Mutex;
+use tower_http::trace::TraceLayer;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use axum::{extract, http, response, response::IntoResponse, routing, Extension, Router};
 
@@ -121,6 +123,14 @@ async fn main() -> Result<()> {
 
     match opts {
         Opt::Server { host, .. } => {
+            tracing_subscriber::registry()
+                .with(tracing_subscriber::EnvFilter::new(
+                    std::env::var("RUST_LOG").unwrap_or_else(|_| {
+                        "advent_of_code_leaderboard=debug,tower_http=debug".into()
+                    }),
+                ))
+                .with(tracing_subscriber::fmt::layer())
+                .init();
             let client = api::Client::new(config.session, config.cache_dir);
             let metadata = config.metadata;
             let config = config
@@ -131,11 +141,14 @@ async fn main() -> Result<()> {
 
             let app = Router::new()
                 .route("/:slug", routing::get(get_leaderboard))
+                .layer(TraceLayer::new_for_http())
                 .layer(Extension(Arc::new(config)))
                 .layer(Extension(Arc::new(metadata)))
                 .layer(Extension(Arc::new(Mutex::new(client))));
 
-            axum::Server::bind(&host.parse()?)
+            let bind = host.parse()?;
+            tracing::info!("Listening on {}", &bind);
+            axum::Server::bind(&bind)
                 .serve(app.into_make_service())
                 .await?;
         }
