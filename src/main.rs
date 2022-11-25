@@ -1,9 +1,9 @@
 use anyhow::Result;
 use axum::response::Response;
+use clap::Parser;
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use structopt::StructOpt;
 use tokio::sync::Mutex;
 
 use axum::{extract, http, response, response::IntoResponse, routing, Extension, Router};
@@ -20,14 +20,15 @@ use config::{Config, LeaderboardConfig};
 
 use self::config::MemberMetadata;
 
-#[derive(Debug, StructOpt)]
+#[derive(Debug, Parser)]
 enum Opt {
     /// Start a webserver that serves the leaderboard
     Server {
         /// TOML configuration file
         config: PathBuf,
 
-        #[structopt(default_value = "0.0.0.0:3000")]
+        /// Bind address and port
+        #[clap(default_value = "0.0.0.0:3000")]
         host: String,
     },
 
@@ -36,6 +37,15 @@ enum Opt {
         /// TOML configuration file
         config: PathBuf,
     },
+}
+
+impl Opt {
+    fn config_path(&self) -> &Path {
+        match self {
+            Opt::Server { ref config, .. } => config,
+            Opt::Console { ref config, .. } => config,
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -54,7 +64,7 @@ where
 }
 
 // API client that is shared across all requests (makes sure that we don't refresh simultaneously)
-type OurClient = Arc<Mutex<api::Client>>;
+type AocClient = Arc<Mutex<api::Client>>;
 
 async fn get_leaderboard(
     extract::Path(slug): extract::Path<String>,
@@ -62,7 +72,7 @@ async fn get_leaderboard(
     extract::Extension(metadata): extract::Extension<
         Arc<HashMap<i32, HashMap<usize, MemberMetadata>>>,
     >,
-    extract::Extension(client): extract::Extension<OurClient>,
+    extract::Extension(client): extract::Extension<AocClient>,
 ) -> Result<response::Html<String>, WebError> {
     let leaderboard_cfg = if let Some(cfg) = cfg.get(&slug) {
         cfg
@@ -95,13 +105,10 @@ impl IntoResponse for WebError {
     fn into_response(self) -> Response {
         let (status, error_message) = match self {
             Self::NotFound => (http::StatusCode::NOT_FOUND, "404 Not Found"),
-            Self::InternalError(e) => {
-                println!("{}", e);
-                (
-                    http::StatusCode::INTERNAL_SERVER_ERROR,
-                    "500 Internal Server Error",
-                )
-            }
+            Self::InternalError(_) => (
+                http::StatusCode::INTERNAL_SERVER_ERROR,
+                "500 Internal Server Error",
+            ),
         };
         (status, error_message).into_response()
     }
@@ -109,11 +116,8 @@ impl IntoResponse for WebError {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let opts = Opt::from_args();
-    let config = Config::from_file(match opts {
-        Opt::Server { ref config, .. } => config,
-        Opt::Console { ref config, .. } => config,
-    })?;
+    let opts = Opt::parse();
+    let config = Config::from_file(opts.config_path())?;
 
     match opts {
         Opt::Server { host, .. } => {
@@ -125,18 +129,15 @@ async fn main() -> Result<()> {
                 .map(|l| (l.slug.clone(), l))
                 .collect::<HashMap<_, _>>();
 
-            // build our application with a single route
             let app = Router::new()
                 .route("/:slug", routing::get(get_leaderboard))
                 .layer(Extension(Arc::new(config)))
                 .layer(Extension(Arc::new(metadata)))
                 .layer(Extension(Arc::new(Mutex::new(client))));
 
-            // run it with hyper on localhost:3000
             axum::Server::bind(&host.parse()?)
                 .serve(app.into_make_service())
-                .await
-                .unwrap();
+                .await?;
         }
         Opt::Console { .. } => {
             let client = api::Client::new(config.session, config.cache_dir);

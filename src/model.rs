@@ -3,7 +3,7 @@ use std::cmp;
 use crate::parser::{Day, Leaderboard};
 use crate::utils::{release_time, score_puzzle};
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Stars {
     None,
     First,

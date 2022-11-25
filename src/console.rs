@@ -12,21 +12,22 @@ pub fn render_template(
     println!();
 
     // Print dates in header row
-    for i in 1..=29 {
+    let padding = 4;
+    for i in 1..=25 + padding {
         if i < 14 {
             print!(" ");
-        } else if i < 24 {
+        } else if i + padding < 20 {
             print!("1");
         } else {
             print!("2");
         }
     }
     println!();
-    for i in 1..=29 {
-        if i <= 4 {
+    for i in 1..=25 + padding {
+        if i <= padding {
             print!(" ");
         } else {
-            print!("{}", (i - 4) % 10);
+            print!("{}", (i - padding) % 10);
         }
     }
     println!();
