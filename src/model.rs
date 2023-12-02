@@ -47,9 +47,8 @@ impl Scoreboard {
                     github: None,
                 };
 
-                let (stars, score) = (1..=25usize).into_iter().fold(
-                    ([Stars::None; 25], 0),
-                    |(mut stars, mut score), day| {
+                let (stars, score) =
+                    (1..=25usize).fold(([Stars::None; 25], 0), |(mut stars, mut score), day| {
                         let released = release_time(year, day as u32).unwrap();
                         let parts = leaderboard_member.completion_day_level.get(&day);
 
@@ -69,8 +68,7 @@ impl Scoreboard {
                         };
 
                         (stars, score)
-                    },
-                );
+                    });
 
                 MemberScore {
                     member,

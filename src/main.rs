@@ -2,6 +2,7 @@ use anyhow::Result;
 use axum::response::Response;
 use clap::Parser;
 use std::collections::HashMap;
+use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -146,11 +147,10 @@ async fn main() -> Result<()> {
                 .layer(Extension(Arc::new(metadata)))
                 .layer(Extension(Arc::new(Mutex::new(client))));
 
-            let bind = host.parse()?;
+            let bind: SocketAddr = host.parse()?;
             tracing::info!("Listening on {}", &bind);
-            axum::Server::bind(&bind)
-                .serve(app.into_make_service())
-                .await?;
+            let listener = tokio::net::TcpListener::bind(bind).await.unwrap();
+            axum::serve(listener, app).await.unwrap();
         }
         Opt::Console { .. } => {
             let client = api::Client::new(config.session, config.cache_dir);

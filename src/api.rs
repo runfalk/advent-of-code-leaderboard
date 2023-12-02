@@ -22,7 +22,7 @@ impl Client {
     pub async fn fetch(&self, year: i32, id: usize) -> Result<Leaderboard> {
         let cache_path = self
             .cache_dir
-            .join(&format!("aoc-leaderboard-{}-{}.json", year, id));
+            .join(format!("aoc-leaderboard-{}-{}.json", year, id));
 
         // We're only allowed to fetch the JSON once every 15 min. Check if we have a cached
         // version before trying
